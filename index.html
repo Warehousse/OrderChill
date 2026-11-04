@@ -38,6 +38,7 @@ input,select{font:inherit;color:var(--tx);background:var(--bg);border:1px solid 
 </style></head><body>
 <header><h1>📦 เทียบคำสั่งซื้อ กับ สินค้ารับเข้า <small id="sy" class="mu"></small> <small id="us" class="mu"></small> <button class="btn sec" id="lo" hidden style="padding:2px 10px;font-size:12px">ออกจากระบบ</button></h1><nav><button data-t="scan" class="on">สแกนรับเข้า</button><button data-t="cmp">เปรียบเทียบ</button><button data-t="dash">Dashboard</button><button data-t="set">นำเข้า / ตั้งค่า</button></nav></header>
 <div id="lg" class="ov" hidden><div class="card" style="width:min(360px,92vw)"><h3>🔐 เข้าสู่ระบบ</h3><input id="em" class="big" placeholder="อีเมล / ชื่อผู้ใช้" autocomplete="username"><input id="pw" class="big" type="password" placeholder="รหัสผ่าน" autocomplete="current-password" style="margin-top:8px"><button class="btn" id="li" style="margin-top:12px;width:100%">เข้าสู่ระบบ</button><div class="warn" id="le" hidden></div></div></div>
+<div id="pn" class="ov" hidden><div class="card" style="width:min(380px,92vw)"><h3>⏳ รอผู้ดูแลอนุมัติสิทธิ์</h3><p class="mu">บัญชีของคุณเข้าสู่ระบบแล้ว แต่ยังไม่ได้รับสิทธิ์ใช้งาน กรุณาแจ้งผู้ดูแลระบบให้กำหนดสิทธิ์ แล้วเปิดหน้านี้ใหม่</p><button class="btn sec" id="lo2">ออกจากระบบ</button></div></div>
 <div id="ts" class="ts"></div>
 <main>
 <div id="alert"><span id="am"></span><button onclick="this.parentNode.classList.remove('show')">ปิด</button></div>
@@ -52,6 +53,7 @@ input,select{font:inherit;color:var(--tx);background:var(--bg);border:1px solid 
 <section id="dash"><div class="grid" id="kp" style="margin-bottom:14px"></div><div class="card"><h3>⚠ สินค้าที่เกิน / นอกคำสั่งซื้อ</h3><div class="tw"><table id="ot"></table></div></div><div class="card"><h3>Stock รับเข้า เทียบคำสั่งซื้อ</h3><div id="cat"></div></div><div class="card"><h3>ความคืบหน้ารายสินค้า (ที่รับเข้าแล้ว)</h3><div id="bars"></div></div></section>
 <section id="set"><div class="card"><h3>1) นำเข้าคำสั่งซื้อ (Import PO)</h3><p class="mu">ไฟล์ .xlsx คอลัมน์: Sap, spec, Product_name, Plan_qty</p><input type="file" id="fpo" accept=".xlsx,.xls,.csv"><p class="mu" id="spo"></p></div>
 <div class="card"><h3>2) Master Product</h3><p class="mu">มี Master ฝังอยู่แล้ว อัปโหลดใหม่เพื่ออัปเดต (มีผลเฉพาะเครื่องนี้) คอลัมน์: PRODUCT_CODE, SPEC, PRODUCT_NAME, ประเภทสินค้า</p><input type="file" id="fms" accept=".xlsx,.xls,.csv"><p class="mu" id="sms"></p></div>
+<div class="card" id="ucard" hidden><h3>4) ผู้ใช้และสิทธิ์</h3><div class="tw"><table id="ut"></table></div><p class="mu">admin = ทุกอย่าง · staff = สแกน/บันทึก ลบได้เฉพาะรายการตัวเอง · viewer = ดูอย่างเดียว · pending = รออนุมัติ (เข้าใช้งานไม่ได้)</p></div>
 <div class="card"><h3>3) ข้อมูลรับเข้า</h3><button class="btn red" id="clr">ล้างข้อมูลรับเข้าทั้งหมด</button><p class="mu">ข้อมูลรับเข้าและคำสั่งซื้อใช้ร่วมกันทุกเครื่องผ่าน Firebase ถ้าหัวเว็บขึ้น ⚪ แปลว่ายังไม่ได้ตั้งค่า Firebase และเก็บเฉพาะเครื่องนี้</p></div></section>
 </main>
 <script>
@@ -84,7 +86,7 @@ function save(){if(!cur||cur.err)return;const q=parseFloat($("#qty")?$("#qty").v
  if(!p)alarm("⚠ "+cur.spec+" ไม่อยู่ในคำสั่งซื้อ");else if(g+q>p[2])alarm("⚠ "+cur.spec+" เกินคำสั่งซื้อ "+N(g+q-p[2])+" (สั่ง "+N(p[2])+" รับแล้ว "+N(g+q)+")");else toast("✔ บันทึกแล้ว");
  cur=null;card();$("#in").value="";$("#in").focus();all()}
 function scan(t){$("#in").value=t;cur=resolve(t);card();if(cur&&!cur.err&&$("#auto").checked)save();else if(cur&&!cur.err&&$("#qty")){const q=$("#qty");q.focus();q.select()}}
-function log(){const h=R.slice(-15).reverse().map(r=>"<tr><td>"+E(r.ts)+"</td><td>"+E(r.by||"-")+"</td><td>"+E(r.spec)+"</td><td>"+E(r.name)+"</td><td>"+(r.lot?"LOT"+E(r.lot):"")+'</td><td class="n">'+N(r.qty)+'</td><td><button class="btn sec" data-d="'+r.id+'">ลบ</button></td></tr>').join("");
+function log(){const h=R.slice(-15).reverse().map(r=>"<tr><td>"+E(r.ts)+"</td><td>"+E(r.by||"-")+"</td><td>"+E(r.spec)+"</td><td>"+E(r.name)+"</td><td>"+(r.lot?"LOT"+E(r.lot):"")+'</td><td class="n">'+N(r.qty)+'</td><td>'+(can(r)?'<button class="btn sec" data-d="'+r.id+'">ลบ</button>':'')+'</td></tr>').join("");
  $("#log").innerHTML="<tr><th>เวลา</th><th>ผู้บันทึก</th><th>SPEC</th><th>สินค้า</th><th>LOT</th><th class='n'>ปริมาณ</th><th></th></tr>"+(h||'<tr><td colspan="7" class="mu">ยังไม่มีรายการ</td></tr>');
  document.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{if(DB)DB.doc("receipts/"+b.dataset.d).delete().catch(e=>alarm("ลบไม่สำเร็จ"));else{R=R.filter(r=>String(r.id)!=b.dataset.d);ls.s("rc",R);all()}})}
 function cmp(){const q=$("#q").value.toLowerCase(),s=$("#fs").value,t=$("#ft").value;
@@ -115,13 +117,26 @@ const FB={apiKey:"AIzaSyAGJVkVbBoLbTYVhdXrDSLxvAhIkX996cM",authDomain:"klangmin.
 let DB=null;const setSync=()=>{$("#sy").textContent=DB?"· 🟢 ข้อมูลร่วมกันทุกเครื่อง":"· ⚪ เครื่องนี้เท่านั้น"};
 async function clr(){if(DB){for(const r of [...R]){try{await DB.doc("receipts/"+r.id).delete()}catch(e){alarm("ลบไม่สำเร็จ");break}}}else{R=[];ls.s("rc",R);all()}}
 setSync();card();all();
-let unsub=[],ME={by:"",uid:""};
-function startDB(u){ME={by:u.email.split("@")[0],uid:u.uid};DB=firebase.firestore();$("#lg").hidden=true;$("#us").textContent="👤 "+ME.by;$("#lo").hidden=false;
- unsub=[DB.doc("config/po").onSnapshot(s=>{if(s.exists&&s.data().items){PO=s.data().items;all()}},e=>{}),
- DB.collection("receipts").onSnapshot(q=>{R=q.docs.map(d=>d.data()).sort((a,b)=>(a.t||0)-(b.t||0));setSync();all()},e=>{alarm("เชื่อมฐานข้อมูลไม่ได้: "+(e.code||""));DB=null;setSync()})];setSync()}
-function stopDB(){unsub.forEach(f=>f());unsub=[];DB=null;R=[];ME={by:"",uid:""};$("#us").textContent="";$("#lo").hidden=true;setSync();all()}
+let unsub=[],uu=null,US=[],ME={by:"",uid:"",role:"admin"};
+const can=r=>ME.role=="admin"||(ME.role=="staff"&&r.uid==ME.uid);
+function applyRole(){const a=ME.role=="admin",w=a||ME.role=="staff";
+ [["scan",w],["cmp",1],["dash",1],["set",a]].forEach(x=>document.querySelector('nav [data-t="'+x[0]+'"]').hidden=!x[1]);
+ $("#ucard").hidden=!a;const on=document.querySelector("nav button.on");if(on&&on.hidden)document.querySelector("nav button:not([hidden])").click()}
+function users(){const t=$("#ut");t.innerHTML="<tr><th>ผู้ใช้</th><th>อีเมล</th><th>สิทธิ์</th></tr>"+US.sort((a,b)=>(a.ts||0)-(b.ts||0)).map(u=>"<tr><td>"+E(u.by)+"</td><td>"+E(u.email)+'</td><td><select data-u="'+E(u.id)+'"'+(u.id==ME.uid?" disabled":"")+">"+["admin","staff","viewer","pending"].map(x=>"<option"+(x==u.role?" selected":"")+">"+x+"</option>").join("")+"</select></td></tr>").join("");
+ t.querySelectorAll("select").forEach(s=>s.onchange=()=>DB.doc("users/"+s.dataset.u).update({role:s.value}).catch(e=>alarm("เปลี่ยนสิทธิ์ไม่สำเร็จ")))}
+function startDB(u){ME={by:u.email.split("@")[0],uid:u.uid,role:"none"};DB=firebase.firestore();$("#lg").hidden=true;$("#lo").hidden=false;$("#us").textContent="👤 "+ME.by;
+ const ref=DB.doc("users/"+u.uid);
+ uu=ref.onSnapshot(s=>{if(!s.exists){ref.set({email:u.email,by:ME.by,role:"pending",ts:Date.now()}).catch(e=>alarm("สร้างบัญชีผู้ใช้ไม่สำเร็จ: "+(e.code||"")));return}
+  const r=s.data().role;if(r!=ME.role||!unsub.length&&["admin","staff","viewer"].includes(r)){ME.role=r;onRole()}},e=>alarm("อ่านสิทธิ์ไม่ได้: "+(e.code||"")));setSync()}
+function onRole(){const ok=["admin","staff","viewer"].includes(ME.role);$("#pn").hidden=ok;$("#us").textContent="👤 "+ME.by+" ("+ME.role+")";
+ unsub.forEach(f=>f());unsub=[];R=[];
+ if(ok){unsub.push(DB.doc("config/po").onSnapshot(s=>{if(s.exists&&s.data().items){PO=s.data().items;all()}},e=>{}),
+  DB.collection("receipts").onSnapshot(q=>{R=q.docs.map(d=>d.data()).sort((a,b)=>(a.t||0)-(b.t||0));setSync();all()},e=>{alarm("เชื่อมฐานข้อมูลไม่ได้: "+(e.code||""))}));
+  if(ME.role=="admin")unsub.push(DB.collection("users").onSnapshot(q=>{US=q.docs.map(d=>Object.assign({id:d.id},d.data()));users()},e=>{}))}
+ applyRole();setSync();all()}
+function stopDB(){unsub.forEach(f=>f());unsub=[];if(uu){uu();uu=null}DB=null;R=[];ME={by:"",uid:"",role:"none"};$("#us").textContent="";$("#lo").hidden=true;$("#pn").hidden=true;setSync();all()}
 (()=>{try{if(!FB.apiKey||/^YOUR/.test(FB.apiKey))return;firebase.initializeApp(FB);$("#lg").hidden=false;
  firebase.auth().onAuthStateChanged(u=>{if(u)startDB(u);else{stopDB();$("#lg").hidden=false}});
  const go=()=>{$("#le").hidden=true;let e=$("#em").value.trim();if(e&&!e.includes("@"))e+="@klangmin.local";firebase.auth().signInWithEmailAndPassword(e,$("#pw").value).catch(x=>{$("#le").textContent="เข้าสู่ระบบไม่สำเร็จ: ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";$("#le").hidden=false})};
- $("#li").onclick=go;$("#pw").onkeydown=e=>{if(e.key=="Enter")go()};$("#lo").onclick=()=>firebase.auth().signOut()}catch(e){}})();
+ $("#li").onclick=go;$("#pw").onkeydown=e=>{if(e.key=="Enter")go()};$("#lo").onclick=$("#lo2").onclick=()=>firebase.auth().signOut()}catch(e){}})();
 </script></body></html>
