@@ -114,11 +114,11 @@ $("#cam").onclick=async()=>{if(cam){await stopCam();return}
  try{$("#rd").hidden=false;cam=new Html5Qrcode("rd");await cam.start({facingMode:"environment"},{fps:10,qrbox:220},t=>{if(busy)return;busy=1;stopCam().then(()=>{busy=0;scan(t);if(cur&&cur.err)return;okb();const q=$("#qty");if(q){q.focus();q.select();q.scrollIntoView({block:"center"})}})})}catch(e){$("#rd").hidden=true;cam=null;alarm("เปิดกล้องไม่ได้ ใช้เครื่องสแกนหรือพิมพ์แทน")}};
 /* ===== ใส่ค่า Firebase config ของคุณตรงนี้ (ดู README.md) ===== */
 const FB={apiKey:"AIzaSyAGJVkVbBoLbTYVhdXrDSLxvAhIkX996cM",authDomain:"klangmin.firebaseapp.com",projectId:"klangmin",storageBucket:"klangmin.firebasestorage.app",messagingSenderId:"902042349529",appId:"1:902042349529:web:03505e3b6535a6684233c8"};
+let unsub=[],uu=null,US=[],ME={by:"",uid:"",role:"admin"};
 let DB=null;const setSync=()=>{$("#sy").textContent=DB?"· 🟢 ข้อมูลร่วมกันทุกเครื่อง":"· ⚪ เครื่องนี้เท่านั้น"};
 async function clr(){if(DB){for(const r of [...R]){try{await DB.doc("receipts/"+r.id).delete()}catch(e){alarm("ลบไม่สำเร็จ");break}}}else{R=[];ls.s("rc",R);all()}}
 setSync();card();all();
-let unsub=[],uu=null,US=[],ME={by:"",uid:"",role:"admin"};
-const can=r=>ME.role=="admin"||(ME.role=="staff"&&r.uid==ME.uid);
+function can(r){return ME.role=="admin"||(ME.role=="staff"&&r.uid==ME.uid)}
 function applyRole(){const a=ME.role=="admin",w=a||ME.role=="staff";
  [["scan",w],["cmp",1],["dash",1],["set",a]].forEach(x=>document.querySelector('nav [data-t="'+x[0]+'"]').hidden=!x[1]);
  $("#ucard").hidden=!a;const on=document.querySelector("nav button.on");if(on&&on.hidden)document.querySelector("nav button:not([hidden])").click()}
