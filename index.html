@@ -4,6 +4,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
 :root{--bg:#f4f6f9;--sf:#fff;--tx:#1b2430;--mu:#667085;--bd:#e0e5eb;--pr:#0b6bcb;--ok:#168a4a;--okb:#e1f5e9;--wn:#a85f00;--wnb:#fff0d2;--er:#c62828;--erb:#fde6e6;--grb:#eceff3;--pu:#6a3cc4;--pub:#efe8fb;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10151c;--sf:#19212b;--tx:#e8edf3;--mu:#97a3b3;--bd:#2c3744;--pr:#5aa5f5;--ok:#4cc27f;--okb:#12301f;--wn:#f0b252;--wnb:#35260c;--er:#ff7b7b;--erb:#3a1717;--grb:#26303c;--pu:#b497f0;--pub:#2a2145}}
@@ -32,8 +33,12 @@ input,select{font:inherit;color:var(--tx);background:var(--bg);border:1px solid 
 .bar{height:10px;background:var(--grb);border-radius:6px;overflow:hidden;margin-top:3px}.bar i{display:block;height:100%;background:var(--pr)}.bar i.over{background:var(--er)}.bar i.ok{background:var(--ok)}
 .it{margin-bottom:12px}.it div.t{display:flex;justify-content:space-between;gap:8px;font-size:13px}
 #rd{max-width:340px;margin-top:10px}h3{margin:0 0 10px;font-size:15px}.mu{color:var(--mu);font-size:13px}
+.ov{position:fixed;inset:0;background:var(--bg);z-index:20;display:flex;align-items:center;justify-content:center}.ov[hidden]{display:none}
+.ts{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#168a4a;color:#fff;padding:10px 18px;border-radius:24px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:30;white-space:nowrap}.ts.show{opacity:1}
 </style></head><body>
-<header><h1>📦 เทียบคำสั่งซื้อ กับ สินค้ารับเข้า <small id="sy" class="mu"></small></h1><nav><button data-t="scan" class="on">สแกนรับเข้า</button><button data-t="cmp">เปรียบเทียบ</button><button data-t="dash">Dashboard</button><button data-t="set">นำเข้า / ตั้งค่า</button></nav></header>
+<header><h1>📦 เทียบคำสั่งซื้อ กับ สินค้ารับเข้า <small id="sy" class="mu"></small> <small id="us" class="mu"></small> <button class="btn sec" id="lo" hidden style="padding:2px 10px;font-size:12px">ออกจากระบบ</button></h1><nav><button data-t="scan" class="on">สแกนรับเข้า</button><button data-t="cmp">เปรียบเทียบ</button><button data-t="dash">Dashboard</button><button data-t="set">นำเข้า / ตั้งค่า</button></nav></header>
+<div id="lg" class="ov" hidden><div class="card" style="width:min(360px,92vw)"><h3>🔐 เข้าสู่ระบบ</h3><input id="em" class="big" placeholder="อีเมล / ชื่อผู้ใช้" autocomplete="username"><input id="pw" class="big" type="password" placeholder="รหัสผ่าน" autocomplete="current-password" style="margin-top:8px"><button class="btn" id="li" style="margin-top:12px;width:100%">เข้าสู่ระบบ</button><div class="warn" id="le" hidden></div></div></div>
+<div id="ts" class="ts"></div>
 <main>
 <div id="alert"><span id="am"></span><button onclick="this.parentNode.classList.remove('show')">ปิด</button></div>
 <section id="scan" class="on">
@@ -74,13 +79,13 @@ function card(){const b=$("#cardbox");if(!cur){b.innerHTML='<div class="mu">ส�
  +'<div class="info">SAP '+E(cur.sap)+" · "+(TY[cur.type]||"-")+" · "+(p?"สั่ง "+N(p[2])+" · รับแล้ว "+N(g)+" · คงเหลือ "+N(p[2]-g):"ไม่อยู่ในคำสั่งซื้อ · รับแล้ว "+N(g))+'</div><div id="wn"></div><div class="row" style="margin-top:12px"><button class="btn" id="sv">✔ บันทึกรับเข้า</button><button class="btn sec" id="cc">ยกเลิก</button></div>';
  $("#sv").onclick=save;$("#cc").onclick=()=>{cur=null;card();$("#in").focus()};$("#qty").oninput=function(){window.dq=this.value;pv()};$("#qty").onkeydown=e=>{if(e.key=="Enter")save()};pv()}
 function save(){if(!cur||cur.err)return;const q=parseFloat($("#qty")?$("#qty").value:window.dq||1)||0;if(q<=0)return;const p=PO[cur.sap],g=(tot()[cur.sap]||{q:0}).q,lot=$("#lot")?$("#lot").value.trim().replace(/^LOT/i,""):cur.lot;
- const rec={id:Date.now()+"-"+Math.floor(Math.random()*1e4),t:Date.now(),ts:new Date().toLocaleString("th-TH"),sap:cur.sap,spec:cur.spec,name:cur.name,lot,qty:q};
+ const rec={id:Date.now()+"-"+Math.floor(Math.random()*1e4),t:Date.now(),by:ME.by,uid:ME.uid,ts:new Date().toLocaleString("th-TH"),sap:cur.sap,spec:cur.spec,name:cur.name,lot,qty:q};
  if(DB)DB.doc("receipts/"+rec.id).set(rec).catch(e=>alarm("บันทึกขึ้นระบบกลางไม่สำเร็จ ("+(e.code||"")+")"));else{R.push(rec);ls.s("rc",R)}
- if(!p)alarm("⚠ "+cur.spec+" ไม่อยู่ในคำสั่งซื้อ");else if(g+q>p[2])alarm("⚠ "+cur.spec+" เกินคำสั่งซื้อ "+N(g+q-p[2])+" (สั่ง "+N(p[2])+" รับแล้ว "+N(g+q)+")");
+ if(!p)alarm("⚠ "+cur.spec+" ไม่อยู่ในคำสั่งซื้อ");else if(g+q>p[2])alarm("⚠ "+cur.spec+" เกินคำสั่งซื้อ "+N(g+q-p[2])+" (สั่ง "+N(p[2])+" รับแล้ว "+N(g+q)+")");else toast("✔ บันทึกแล้ว");
  cur=null;card();$("#in").value="";$("#in").focus();all()}
-function scan(t){$("#in").value=t;cur=resolve(t);card();if(cur&&!cur.err&&$("#auto").checked)save();else if(cur&&!cur.err&&$("#qty"))$("#qty").select()}
-function log(){const h=R.slice(-15).reverse().map(r=>"<tr><td>"+E(r.ts)+"</td><td>"+E(r.spec)+"</td><td>"+E(r.name)+"</td><td>"+(r.lot?"LOT"+E(r.lot):"")+'</td><td class="n">'+N(r.qty)+'</td><td><button class="btn sec" data-d="'+r.id+'">ลบ</button></td></tr>').join("");
- $("#log").innerHTML="<tr><th>เวลา</th><th>SPEC</th><th>สินค้า</th><th>LOT</th><th class='n'>ปริมาณ</th><th></th></tr>"+(h||'<tr><td colspan="6" class="mu">ยังไม่มีรายการ</td></tr>');
+function scan(t){$("#in").value=t;cur=resolve(t);card();if(cur&&!cur.err&&$("#auto").checked)save();else if(cur&&!cur.err&&$("#qty")){const q=$("#qty");q.focus();q.select()}}
+function log(){const h=R.slice(-15).reverse().map(r=>"<tr><td>"+E(r.ts)+"</td><td>"+E(r.by||"-")+"</td><td>"+E(r.spec)+"</td><td>"+E(r.name)+"</td><td>"+(r.lot?"LOT"+E(r.lot):"")+'</td><td class="n">'+N(r.qty)+'</td><td><button class="btn sec" data-d="'+r.id+'">ลบ</button></td></tr>').join("");
+ $("#log").innerHTML="<tr><th>เวลา</th><th>ผู้บันทึก</th><th>SPEC</th><th>สินค้า</th><th>LOT</th><th class='n'>ปริมาณ</th><th></th></tr>"+(h||'<tr><td colspan="7" class="mu">ยังไม่มีรายการ</td></tr>');
  document.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{if(DB)DB.doc("receipts/"+b.dataset.d).delete().catch(e=>alarm("ลบไม่สำเร็จ"));else{R=R.filter(r=>String(r.id)!=b.dataset.d);ls.s("rc",R);all()}})}
 function cmp(){const q=$("#q").value.toLowerCase(),s=$("#fs").value,t=$("#ft").value;
  const d=rows().filter(r=>(!s||r.st==s)&&(!t||r.type==t)&&(!q||(r.spec+r.name+r.sap).toLowerCase().includes(q))).sort((a,b)=>({over:0,out:1,short:2,none:3,ok:4}[a.st]-{over:0,out:1,short:2,none:3,ok:4}[b.st]));
@@ -100,14 +105,23 @@ let ar=0;$("#clr").onclick=function(){if(!ar){ar=1;this.textContent="กดอ�
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button,section").forEach(x=>x.classList.remove("on"));b.classList.add("on");$("#"+b.dataset.t).classList.add("on");all()});
 $("#in").onkeydown=e=>{if(e.key=="Enter")scan(e.target.value)};$("#go").onclick=()=>scan($("#in").value);
 ["q","fs","ft"].forEach(i=>$("#"+i).oninput=cmp);
-let cam,lt="",lm=0;$("#cam").onclick=async()=>{if(cam){try{await cam.stop()}catch(e){}cam=null;$("#rd").hidden=true;return}
- try{$("#rd").hidden=false;cam=new Html5Qrcode("rd");await cam.start({facingMode:"environment"},{fps:10,qrbox:220},t=>{if(t!==lt||Date.now()-lm>3000){lt=t;lm=Date.now();scan(t)}})}catch(e){$("#rd").hidden=true;cam=null;alarm("เปิดกล้องไม่ได้ ใช้เครื่องสแกนหรือพิมพ์แทน")}};
+function toast(m){const e=$("#ts");e.textContent=m;e.classList.add("show");clearTimeout(toast.h);toast.h=setTimeout(()=>e.classList.remove("show"),2500)}
+function okb(){try{const c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator();o.frequency.value=1200;o.connect(c.destination);o.start();o.stop(c.currentTime+.15)}catch(e){}try{navigator.vibrate&&navigator.vibrate(100)}catch(e){}toast("✔ สแกนสำเร็จ — ระบุปริมาณ")}
+let cam,busy=0;async function stopCam(){if(cam){try{await cam.stop()}catch(e){}try{cam.clear()}catch(e){}cam=null;$("#rd").hidden=true}}
+$("#cam").onclick=async()=>{if(cam){await stopCam();return}
+ try{$("#rd").hidden=false;cam=new Html5Qrcode("rd");await cam.start({facingMode:"environment"},{fps:10,qrbox:220},t=>{if(busy)return;busy=1;stopCam().then(()=>{busy=0;scan(t);if(cur&&cur.err)return;okb();const q=$("#qty");if(q){q.focus();q.select();q.scrollIntoView({block:"center"})}})})}catch(e){$("#rd").hidden=true;cam=null;alarm("เปิดกล้องไม่ได้ ใช้เครื่องสแกนหรือพิมพ์แทน")}};
 /* ===== ใส่ค่า Firebase config ของคุณตรงนี้ (ดู README.md) ===== */
 const FB={apiKey:"AIzaSyAGJVkVbBoLbTYVhdXrDSLxvAhIkX996cM",authDomain:"klangmin.firebaseapp.com",projectId:"klangmin",storageBucket:"klangmin.firebasestorage.app",messagingSenderId:"902042349529",appId:"1:902042349529:web:03505e3b6535a6684233c8"};
 let DB=null;const setSync=()=>{$("#sy").textContent=DB?"· 🟢 ข้อมูลร่วมกันทุกเครื่อง":"· ⚪ เครื่องนี้เท่านั้น"};
 async function clr(){if(DB){for(const r of [...R]){try{await DB.doc("receipts/"+r.id).delete()}catch(e){alarm("ลบไม่สำเร็จ");break}}}else{R=[];ls.s("rc",R);all()}}
 setSync();card();all();
-(()=>{try{if(!FB.apiKey||/^YOUR/.test(FB.apiKey))return;firebase.initializeApp(FB);DB=firebase.firestore();
- DB.doc("config/po").onSnapshot(s=>{if(s.exists&&s.data().items){PO=s.data().items;all()}},e=>{});
- DB.collection("receipts").onSnapshot(q=>{R=q.docs.map(d=>d.data()).sort((a,b)=>(a.t||0)-(b.t||0));setSync();all()},e=>{DB=null;setSync()})}catch(e){}})();
+let unsub=[],ME={by:"",uid:""};
+function startDB(u){ME={by:u.email.split("@")[0],uid:u.uid};DB=firebase.firestore();$("#lg").hidden=true;$("#us").textContent="👤 "+ME.by;$("#lo").hidden=false;
+ unsub=[DB.doc("config/po").onSnapshot(s=>{if(s.exists&&s.data().items){PO=s.data().items;all()}},e=>{}),
+ DB.collection("receipts").onSnapshot(q=>{R=q.docs.map(d=>d.data()).sort((a,b)=>(a.t||0)-(b.t||0));setSync();all()},e=>{alarm("เชื่อมฐานข้อมูลไม่ได้: "+(e.code||""));DB=null;setSync()})];setSync()}
+function stopDB(){unsub.forEach(f=>f());unsub=[];DB=null;R=[];ME={by:"",uid:""};$("#us").textContent="";$("#lo").hidden=true;setSync();all()}
+(()=>{try{if(!FB.apiKey||/^YOUR/.test(FB.apiKey))return;firebase.initializeApp(FB);$("#lg").hidden=false;
+ firebase.auth().onAuthStateChanged(u=>{if(u)startDB(u);else{stopDB();$("#lg").hidden=false}});
+ const go=()=>{$("#le").hidden=true;let e=$("#em").value.trim();if(e&&!e.includes("@"))e+="@klangmin.local";firebase.auth().signInWithEmailAndPassword(e,$("#pw").value).catch(x=>{$("#le").textContent="เข้าสู่ระบบไม่สำเร็จ: ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";$("#le").hidden=false})};
+ $("#li").onclick=go;$("#pw").onkeydown=e=>{if(e.key=="Enter")go()};$("#lo").onclick=()=>firebase.auth().signOut()}catch(e){}})();
 </script></body></html>
