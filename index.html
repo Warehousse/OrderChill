@@ -2,6 +2,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
 :root{--bg:#f4f6f9;--sf:#fff;--tx:#1b2430;--mu:#667085;--bd:#e0e5eb;--pr:#0b6bcb;--ok:#168a4a;--okb:#e1f5e9;--wn:#a85f00;--wnb:#fff0d2;--er:#c62828;--erb:#fde6e6;--grb:#eceff3;--pu:#6a3cc4;--pub:#efe8fb;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10151c;--sf:#19212b;--tx:#e8edf3;--mu:#97a3b3;--bd:#2c3744;--pr:#5aa5f5;--ok:#4cc27f;--okb:#12301f;--wn:#f0b252;--wnb:#35260c;--er:#ff7b7b;--erb:#3a1717;--grb:#26303c;--pu:#b497f0;--pub:#2a2145}}
@@ -45,7 +47,7 @@ input,select{font:inherit;color:var(--tx);background:var(--bg);border:1px solid 
 <section id="dash"><div class="grid" id="kp" style="margin-bottom:14px"></div><div class="card"><h3>⚠ สินค้าที่เกิน / นอกคำสั่งซื้อ</h3><div class="tw"><table id="ot"></table></div></div><div class="card"><h3>Stock รับเข้า เทียบคำสั่งซื้อ</h3><div id="cat"></div></div><div class="card"><h3>ความคืบหน้ารายสินค้า (ที่รับเข้าแล้ว)</h3><div id="bars"></div></div></section>
 <section id="set"><div class="card"><h3>1) นำเข้าคำสั่งซื้อ (Import PO)</h3><p class="mu">ไฟล์ .xlsx คอลัมน์: Sap, spec, Product_name, Plan_qty</p><input type="file" id="fpo" accept=".xlsx,.xls,.csv"><p class="mu" id="spo"></p></div>
 <div class="card"><h3>2) Master Product</h3><p class="mu">มี Master ฝังอยู่แล้ว อัปโหลดใหม่เพื่ออัปเดต (มีผลเฉพาะเครื่องนี้) คอลัมน์: PRODUCT_CODE, SPEC, PRODUCT_NAME, ประเภทสินค้า</p><input type="file" id="fms" accept=".xlsx,.xls,.csv"><p class="mu" id="sms"></p></div>
-<div class="card"><h3>3) ข้อมูลรับเข้า</h3><button class="btn red" id="clr">ล้างข้อมูลรับเข้าทั้งหมด</button><p class="mu">ข้อมูลรับเข้าและคำสั่งซื้อใช้ร่วมกันทุกเครื่องที่เปิดลิงก์นี้ (ต้องล็อกอินและมีสิทธิ์ Contributor ขึ้นไปจึงจะบันทึกได้) ถ้าไม่ขึ้น 🟢 ที่หัวเว็บ จะเก็บเฉพาะเครื่องนี้</p></div></section>
+<div class="card"><h3>3) ข้อมูลรับเข้า</h3><button class="btn red" id="clr">ล้างข้อมูลรับเข้าทั้งหมด</button><p class="mu">ข้อมูลรับเข้าและคำสั่งซื้อใช้ร่วมกันทุกเครื่องผ่าน Firebase ถ้าหัวเว็บขึ้น ⚪ แปลว่ายังไม่ได้ตั้งค่า Firebase และเก็บเฉพาะเครื่องนี้</p></div></section>
 </main>
 <script>
 const $=s=>document.querySelector(s),E=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])),N=x=>(+x).toLocaleString("th-TH",{maximumFractionDigits:2});
@@ -100,10 +102,12 @@ $("#in").onkeydown=e=>{if(e.key=="Enter")scan(e.target.value)};$("#go").onclick=
 ["q","fs","ft"].forEach(i=>$("#"+i).oninput=cmp);
 let cam,lt="",lm=0;$("#cam").onclick=async()=>{if(cam){try{await cam.stop()}catch(e){}cam=null;$("#rd").hidden=true;return}
  try{$("#rd").hidden=false;cam=new Html5Qrcode("rd");await cam.start({facingMode:"environment"},{fps:10,qrbox:220},t=>{if(t!==lt||Date.now()-lm>3000){lt=t;lm=Date.now();scan(t)}})}catch(e){$("#rd").hidden=true;cam=null;alarm("เปิดกล้องไม่ได้ ใช้เครื่องสแกนหรือพิมพ์แทน")}};
+/* ===== ใส่ค่า Firebase config ของคุณตรงนี้ (ดู README.md) ===== */
+const FB={apiKey:"AIzaSyAGJVkVbBoLbTYVhdXrDSLxvAhIkX996cM",authDomain:"klangmin.firebaseapp.com",projectId:"klangmin",storageBucket:"klangmin.firebasestorage.app",messagingSenderId:"902042349529",appId:"1:902042349529:web:03505e3b6535a6684233c8"};
 let DB=null;const setSync=()=>{$("#sy").textContent=DB?"· 🟢 ข้อมูลร่วมกันทุกเครื่อง":"· ⚪ เครื่องนี้เท่านั้น"};
 async function clr(){if(DB){for(const r of [...R]){try{await DB.doc("receipts/"+r.id).delete()}catch(e){alarm("ลบไม่สำเร็จ");break}}}else{R=[];ls.s("rc",R);all()}}
 setSync();card();all();
-(async()=>{try{const c=await Promise.race([claude.use("db"),new Promise(r=>setTimeout(()=>r(null),10000))]);if(!c)return;DB=c;
+(()=>{try{if(!FB.apiKey||/^YOUR/.test(FB.apiKey))return;firebase.initializeApp(FB);DB=firebase.firestore();
  DB.doc("config/po").onSnapshot(s=>{if(s.exists&&s.data().items){PO=s.data().items;all()}},e=>{});
  DB.collection("receipts").onSnapshot(q=>{R=q.docs.map(d=>d.data()).sort((a,b)=>(a.t||0)-(b.t||0));setSync();all()},e=>{DB=null;setSync()})}catch(e){}})();
 </script></body></html>
