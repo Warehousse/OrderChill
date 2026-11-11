@@ -20,7 +20,7 @@ main{max-width:1100px;margin:0 auto;padding:16px}section{display:none}section.on
 input,select{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:9px 11px;max-width:100%}
 .big{width:100%;font-size:16px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .btn{border:0;background:var(--pr);color:#fff;border-radius:8px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
-.btn.sec{background:var(--grb);color:var(--tx)}.btn.red{background:var(--er);color:#fff}
+.btn.sec{background:var(--grb);color:var(--tx)}.btn:disabled{opacity:.45;cursor:not-allowed}.btn.red{background:var(--er);color:#fff}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
 .f small{display:block;color:var(--mu);font-size:12px}.f b{font-size:18px;word-break:break-word}.f input{width:100%;font-size:18px;font-weight:700}
 .kpi{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}.kpi small{color:var(--mu)}.kpi b{display:block;font-size:26px}
@@ -44,11 +44,11 @@ input,select{font:inherit;color:var(--tx);background:var(--bg);border:1px solid 
 <div id="alert"><span id="am"></span><button onclick="this.parentNode.classList.remove('show')">ปิด</button></div>
 <section id="scan" class="on">
 <div class="card"><div class="row"><input id="in" class="big" style="flex:1" placeholder="สแกน QR / Barcode / พิมพ์ SPEC หรือรหัส SAP แล้วกด Enter" autofocus autocomplete="off"><button class="btn" id="go">อ่านค่า</button><button class="btn sec" id="cam">📷 กล้อง</button></div>
-<label class="mu"><input type="checkbox" id="auto"> บันทึกอัตโนมัติทันทีที่สแกน (ปริมาณตามค่าที่ตั้งไว้)</label><div id="rd" hidden></div></div>
+<div class="mu">หลังสแกนต้องระบุ LOT และปริมาณทุกครั้ง จึงจะบันทึกได้</div><div id="rd" hidden></div></div>
 <div class="card" id="cardbox"></div>
-<div class="card"><h3>รายการรับเข้าล่าสุด</h3><div class="tw"><table id="log"></table></div></div>
+<div class="card"><h3>ประวัติรับเข้า (ทุกรายการ) <small class="mu" id="lc"></small></h3><div class="row" style="margin-bottom:10px"><input id="lq" placeholder="ค้นหา SPEC / ชื่อ / LOT / ผู้บันทึก" style="flex:1"><input id="ld" type="date" title="กรองตามวันที่"><button class="btn sec" id="xh">⬇ Excel</button></div><div class="tw" style="max-height:480px;overflow:auto"><table id="log"></table></div></div>
 </section>
-<section id="cmp"><div class="card"><div class="row"><input id="q" placeholder="ค้นหา SPEC / ชื่อ / SAP" style="flex:1"><select id="fs"><option value="">ทุกสถานะ</option><option value="over">เกินคำสั่งซื้อ</option><option value="short">รับบางส่วน</option><option value="ok">ครบ</option><option value="none">ยังไม่รับ</option><option value="out">นอกคำสั่งซื้อ</option></select><select id="ft"><option value="">Chill + Frozen</option><option value="C">Chill</option><option value="F">Frozen</option><option value="O">อื่นๆ</option></select></div></div>
+<section id="cmp"><div class="card"><div class="row"><input id="q" placeholder="ค้นหา SPEC / ชื่อ / SAP" style="flex:1"><select id="fs"><option value="">ทุกสถานะ</option><option value="over">เกินคำสั่งซื้อ</option><option value="short">รับบางส่วน</option><option value="ok">ครบ</option><option value="none">ยังไม่รับ</option><option value="out">นอกคำสั่งซื้อ</option></select><select id="ft"><option value="">Chill + Frozen</option><option value="C">Chill</option><option value="F">Frozen</option><option value="O">อื่นๆ</option></select><button class="btn sec" id="xc">⬇ Excel</button></div></div>
 <div class="card tw"><table id="ct"></table></div></section>
 <section id="dash"><div class="grid" id="kp" style="margin-bottom:14px"></div><div class="card"><h3>⚠ สินค้าที่เกิน / นอกคำสั่งซื้อ</h3><div class="tw"><table id="ot"></table></div></div><div class="card"><h3>Stock รับเข้า เทียบคำสั่งซื้อ</h3><div id="cat"></div></div><div class="card"><h3>ความคืบหน้ารายสินค้า (ที่รับเข้าแล้ว)</h3><div id="bars"></div></div></section>
 <section id="set"><div class="card"><h3>1) นำเข้าคำสั่งซื้อ (Import PO)</h3><p class="mu">ไฟล์ .xlsx คอลัมน์: Sap, spec, Product_name, Plan_qty</p><input type="file" id="fpo" accept=".xlsx,.xls,.csv"><p class="mu" id="spo"></p></div>
@@ -76,23 +76,26 @@ function rows(){const t=tot(),s=new Set([...Object.keys(PO),...Object.keys(t)]);
  return{sap:k,spec:p?p[0]:a[0]||"",name:p?p[1]:a[1]||"",type:a[2]||"",plan:pl,got:g,diff:g-pl,st:!p?"out":g==0?"none":g>pl?"over":g==pl?"ok":"short",lots:t[k]?Object.entries(t[k].l).map(([l,q])=>"LOT"+l+"×"+q).join(", "):""}})}
 function beep(){try{const c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator();o.frequency.value=880;o.connect(c.destination);o.start();o.stop(c.currentTime+.5)}catch(e){}try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
 function alarm(m){$("#am").textContent=m;$("#alert").classList.add("show");beep()}
+function chk(){const l=$("#lot"),q=$("#qty"),b=$("#sv");if(!l||!q||!b)return;const lv=l.value.trim().replace(/^LOT/i,""),qv=parseFloat(q.value)||0,ok=!!lv&&qv>0;b.disabled=!ok;
+ $("#hn").textContent=ok?"":"* ต้องระบุ "+(!lv?"LOT":"")+(!lv&&qv<=0?" และ ":"")+(qv<=0?"ปริมาณ":"")+" ก่อนบันทึก";pv()}
 function pv(){const w=$("#wn");if(!w||!cur||cur.err)return;const q=parseFloat($("#qty").value)||0,p=PO[cur.sap],g=(tot()[cur.sap]||{q:0}).q;
  w.innerHTML=!p?'<div class="warn">⚠ สินค้านี้ไม่อยู่ในคำสั่งซื้อ</div>':g+q>p[2]?'<div class="warn">⚠ หากบันทึกจะเกินคำสั่งซื้อ '+N(g+q-p[2])+'</div>':""}
 function card(){const b=$("#cardbox");if(!cur){b.innerHTML='<div class="mu">สแกนหรือพิมพ์ SPEC เพื่อดูข้อมูลสินค้า</div>';return}
  if(cur.multi){b.innerHTML='<div class="info" style="margin:0 0 10px">พบหลายสินค้าที่ใช้ Barcode เดียวกัน ('+E(cur.code)+') เลือกให้ตรงกับถุง:</div>'+cur.multi.map(k=>{const a=M[k]||[],p=PO[k];return'<button class="btn sec" style="display:block;width:100%;text-align:left;margin-bottom:8px" data-k="'+E(k)+'">'+E(a[0]||k)+" — "+E(a[1]||"")+(p?" · สั่ง "+N(p[2]):" · ไม่อยู่ใน PO")+"</button>"}).join("");
-  b.querySelectorAll("[data-k]").forEach(x=>x.onclick=()=>{cur=mk(x.dataset.k,"");cur.src="BC";card();const q=$("#qty");if(q){q.focus();q.select()}});return}
+  b.querySelectorAll("[data-k]").forEach(x=>x.onclick=()=>{cur=mk(x.dataset.k,"");cur.src="BC";card();fo()});return}
  if(cur.err){b.innerHTML='<div class="warn" style="margin:0">'+E(cur.err)+"</div>";return}
  const p=PO[cur.sap],g=(tot()[cur.sap]||{q:0}).q;
- b.innerHTML='<div class="grid"><div class="f"><small>SPEC</small><b>'+E(cur.spec)+'</b></div><div class="f"><small>PRODUCT_NAME</small><b>'+E(cur.name)+'</b></div><div class="f"><small>LOT</small><input id="lot" value="'+(cur.lot?"LOT"+E(cur.lot):"")+'" placeholder="'+(cur.src=="BC"?"LOT (Barcode ไม่มี LOT)":"LOT")+'"></div><div class="f"><small>ปริมาณ</small><input id="qty" type="number" min="0" step="any" value="'+(window.dq||1)+'"></div></div>'
- +'<div class="info">SAP '+E(cur.sap)+" · "+(TY[cur.type]||"-")+(cur.wt?" · น้ำหนัก/ถุง "+E(cur.wt):"")+" · อ่านจาก "+({BC:"Barcode",QR:"QR",SP:"พิมพ์"}[cur.src]||"พิมพ์")+" · "+(p?"สั่ง "+N(p[2])+" · รับแล้ว "+N(g)+" · คงเหลือ "+N(p[2]-g):"ไม่อยู่ในคำสั่งซื้อ · รับแล้ว "+N(g))+'</div><div id="wn"></div><div class="row" style="margin-top:12px"><button class="btn" id="sv">✔ บันทึกรับเข้า</button><button class="btn sec" id="cc">ยกเลิก</button></div>';
- $("#sv").onclick=save;$("#cc").onclick=()=>{cur=null;card();$("#in").focus()};$("#qty").oninput=function(){window.dq=this.value;pv()};$("#qty").onkeydown=e=>{if(e.key=="Enter")save()};pv()}
-function save(){if(!cur||cur.err||cur.multi)return;const q=parseFloat($("#qty")?$("#qty").value:window.dq||1)||0;if(q<=0)return;const p=PO[cur.sap],g=(tot()[cur.sap]||{q:0}).q,lot=$("#lot")?$("#lot").value.trim().replace(/^LOT/i,""):cur.lot;
+ b.innerHTML='<div class="grid"><div class="f"><small>SPEC</small><b>'+E(cur.spec)+'</b></div><div class="f"><small>PRODUCT_NAME</small><b>'+E(cur.name)+'</b></div><div class="f"><small>LOT *</small><input id="lot" value="'+(cur.lot?"LOT"+E(cur.lot):"")+'" placeholder="'+(cur.src=="BC"?"LOT (Barcode ไม่มี LOT)":"LOT")+'"></div><div class="f"><small>ปริมาณ *</small><input id="qty" type="number" min="0" step="any" placeholder="ระบุปริมาณ"></div></div>'
+ +'<div class="info">SAP '+E(cur.sap)+" · "+(TY[cur.type]||"-")+(cur.wt?" · น้ำหนัก/ถุง "+E(cur.wt):"")+" · อ่านจาก "+({BC:"Barcode",QR:"QR",SP:"พิมพ์"}[cur.src]||"พิมพ์")+" · "+(p?"สั่ง "+N(p[2])+" · รับแล้ว "+N(g)+" · คงเหลือ "+N(p[2]-g):"ไม่อยู่ในคำสั่งซื้อ · รับแล้ว "+N(g))+'</div><div id="wn"></div><div class="row" style="margin-top:12px"><button class="btn" id="sv">✔ บันทึกรับเข้า</button><button class="btn sec" id="cc">ยกเลิก</button></div><div id="hn" style="margin-top:8px;color:var(--er);font-weight:600"></div>';
+ $("#sv").onclick=save;$("#cc").onclick=()=>{cur=null;card();$("#in").focus()};$("#qty").oninput=chk;$("#lot").oninput=chk;$("#lot").onkeydown=e=>{if(e.key=="Enter"){e.preventDefault();$("#qty").focus()}};chk();$("#qty").onkeydown=e=>{if(e.key=="Enter")save()};pv()}
+function save(){if(!cur||cur.err||cur.multi)return;const q=parseFloat($("#qty").value)||0,lt=$("#lot").value.trim().replace(/^LOT/i,"");if(!lt){toast("⚠ ต้องระบุ LOT",1);$("#lot").focus();return}if(q<=0){toast("⚠ ต้องระบุปริมาณ",1);$("#qty").focus();return}const p=PO[cur.sap],g=(tot()[cur.sap]||{q:0}).q,lot=$("#lot")?$("#lot").value.trim().replace(/^LOT/i,""):cur.lot;
  const rec={id:Date.now()+"-"+Math.floor(Math.random()*1e4),t:Date.now(),by:ME.by,uid:ME.uid,ts:new Date().toLocaleString("th-TH"),sap:cur.sap,spec:cur.spec,name:cur.name,lot,qty:q,src:cur.src||""};
  if(DB)DB.doc("receipts/"+rec.id).set(rec).catch(e=>alarm("บันทึกขึ้นระบบกลางไม่สำเร็จ ("+(e.code||"")+")"));else{R.push(rec);ls.s("rc",R)}
  if(!p)alarm("⚠ "+cur.spec+" ไม่อยู่ในคำสั่งซื้อ");else if(g+q>p[2])alarm("⚠ "+cur.spec+" เกินคำสั่งซื้อ "+N(g+q-p[2])+" (สั่ง "+N(p[2])+" รับแล้ว "+N(g+q)+")");else toast("✔ บันทึกแล้ว");
  cur=null;card();$("#in").value="";$("#in").focus();all()}
-function scan(t){$("#in").value=t;cur=resolve(t);card();if(cur&&!cur.err&&!cur.multi&&$("#auto").checked)save();else if(cur&&!cur.err&&!cur.multi&&$("#qty")){const q=$("#qty");q.focus();q.select()}}
-function log(){const h=R.slice(-15).reverse().map(r=>"<tr><td>"+E(r.ts)+"</td><td>"+E(r.by||"-")+"</td><td>"+E(r.spec)+"</td><td>"+E(r.name)+"</td><td>"+(r.lot?"LOT"+E(r.lot):"")+'</td><td class="n">'+N(r.qty)+'</td><td>'+(can(r)?'<button class="btn sec" data-d="'+r.id+'">ลบ</button>':'')+'</td></tr>').join("");
+function fo(){const l=$("#lot"),q=$("#qty");if(l&&!l.value.trim().replace(/^LOT/i,""))l.focus();else if(q){q.focus();q.select()}}
+function scan(t){$("#in").value=t;cur=resolve(t);card();if(cur&&!cur.err&&!cur.multi)fo()}
+function log(){const h=hist().map(r=>"<tr><td>"+E(r.ts)+"</td><td>"+E(r.by||"-")+"</td><td>"+E(r.spec)+"</td><td>"+E(r.name)+"</td><td>"+(r.lot?"LOT"+E(r.lot):"")+'</td><td class="n">'+N(r.qty)+'</td><td>'+(can(r)?'<button class="btn sec" data-d="'+r.id+'">ลบ</button>':'')+'</td></tr>').join("");
  $("#log").innerHTML="<tr><th>เวลา</th><th>ผู้บันทึก</th><th>SPEC</th><th>สินค้า</th><th>LOT</th><th class='n'>ปริมาณ</th><th></th></tr>"+(h||'<tr><td colspan="7" class="mu">ยังไม่มีรายการ</td></tr>');
  document.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{if(DB)DB.doc("receipts/"+b.dataset.d).delete().catch(e=>alarm("ลบไม่สำเร็จ"));else{R=R.filter(r=>String(r.id)!=b.dataset.d);ls.s("rc",R);all()}})}
 function cmp(){const q=$("#q").value.toLowerCase(),s=$("#fs").value,t=$("#ft").value;
@@ -114,11 +117,21 @@ let ar=0;$("#clr").onclick=function(){if(!ar){ar=1;this.textContent="กดอ�
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button,section").forEach(x=>x.classList.remove("on"));b.classList.add("on");$("#"+b.dataset.t).classList.add("on");all()});
 $("#in").onkeydown=e=>{if(e.key=="Enter")scan(e.target.value)};$("#go").onclick=()=>scan($("#in").value);
 ["q","fs","ft"].forEach(i=>$("#"+i).oninput=cmp);
-function toast(m){const e=$("#ts");e.textContent=m;e.classList.add("show");clearTimeout(toast.h);toast.h=setTimeout(()=>e.classList.remove("show"),2500)}
+function dk(t){const d=new Date(t);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function hist(){const q=$("#lq").value.toLowerCase(),d=$("#ld").value;
+ const a=R.slice().reverse().filter(r=>(!q||(r.spec+" "+r.name+" "+r.lot+" "+r.by+" "+r.sap).toLowerCase().includes(q))&&(!d||(r.t&&dk(r.t)==d)));
+ $("#lc").textContent="· ทั้งหมด "+R.length+" รายการ"+(a.length!=R.length?" (แสดง "+a.length+")":"");return a}
+function xl(name,a,w){if(!a.length){toast("ไม่มีข้อมูลให้ส่งออก",1);return}if(typeof XLSX=="undefined"){toast("โหลดไลบรารี Excel ไม่สำเร็จ",1);return}
+ try{const ws=XLSX.utils.json_to_sheet(a);ws["!cols"]=w.map(x=>({wch:x}));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Data");XLSX.writeFile(wb,name+"_"+dk(Date.now())+".xlsx")}catch(e){toast("ส่งออกไม่สำเร็จ",1)}}
+$("#lq").oninput=$("#ld").onchange=log;
+$("#xh").onclick=()=>xl("receiving_history",hist().map(r=>({"เวลา":r.ts,"ผู้บันทึก":r.by||"","SPEC":r.spec,"SAP":r.sap,"สินค้า":r.name,"LOT":r.lot||"","ปริมาณ":r.qty,"แหล่งที่อ่าน":{BC:"Barcode",QR:"QR",SP:"พิมพ์"}[r.src]||""})),[22,14,16,12,36,10,10,12]);
+$("#xc").onclick=()=>{const q=$("#q").value.toLowerCase(),s=$("#fs").value,t=$("#ft").value,o={over:0,out:1,short:2,none:3,ok:4};
+ xl("po_vs_received",rows().filter(r=>(!s||r.st==s)&&(!t||r.type==t)&&(!q||(r.spec+r.name+r.sap).toLowerCase().includes(q))).sort((a,b)=>o[a.st]-o[b.st]).map(r=>({"SAP":r.sap,"SPEC":r.spec,"สินค้า":r.name,"ประเภท":TY[r.type]||"","สั่ง":r.plan,"รับจริง":r.got,"ผลต่าง":r.diff,"สถานะ":ST[r.st],"LOT ที่รับ":r.lots})),[12,16,36,10,10,10,10,12,40])};
+function toast(m,b){const e=$("#ts");e.style.background=b?"#c62828":"#168a4a";e.textContent=m;e.classList.add("show");clearTimeout(toast.h);toast.h=setTimeout(()=>e.classList.remove("show"),2500)}
 function okb(){try{const c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator();o.frequency.value=1200;o.connect(c.destination);o.start();o.stop(c.currentTime+.15)}catch(e){}try{navigator.vibrate&&navigator.vibrate(100)}catch(e){}toast("✔ สแกนสำเร็จ — ระบุปริมาณ")}
 let cam,busy=0;async function stopCam(){if(cam){try{await cam.stop()}catch(e){}try{cam.clear()}catch(e){}cam=null;$("#rd").hidden=true}}
 $("#cam").onclick=async()=>{if(cam){await stopCam();return}
- try{$("#rd").hidden=false;const H=Html5QrcodeSupportedFormats;cam=new Html5Qrcode("rd",{formatsToSupport:[H.QR_CODE,H.EAN_13,H.EAN_8,H.UPC_A,H.UPC_E,H.CODE_128,H.CODE_39,H.ITF],experimentalFeatures:{useBarCodeDetectorIfSupported:true},verbose:false});await cam.start({facingMode:"environment"},{fps:10,qrbox:{width:280,height:170}},t=>{if(busy)return;busy=1;stopCam().then(()=>{busy=0;scan(t);if(cur&&cur.err)return;okb();const q=$("#qty");if(q){q.focus();q.select();q.scrollIntoView({block:"center"})}})})}catch(e){$("#rd").hidden=true;cam=null;alarm("เปิดกล้องไม่ได้ ใช้เครื่องสแกนหรือพิมพ์แทน")}};
+ try{$("#rd").hidden=false;const H=Html5QrcodeSupportedFormats;cam=new Html5Qrcode("rd",{formatsToSupport:[H.QR_CODE,H.EAN_13,H.EAN_8,H.UPC_A,H.UPC_E,H.CODE_128,H.CODE_39,H.ITF],experimentalFeatures:{useBarCodeDetectorIfSupported:true},verbose:false});await cam.start({facingMode:"environment"},{fps:10,qrbox:{width:280,height:170}},t=>{if(busy)return;busy=1;stopCam().then(()=>{busy=0;scan(t);if(cur&&cur.err)return;okb();fo();const q=$("#qty");if(q)q.scrollIntoView({block:"center"})})})}catch(e){$("#rd").hidden=true;cam=null;alarm("เปิดกล้องไม่ได้ ใช้เครื่องสแกนหรือพิมพ์แทน")}};
 /* ===== ใส่ค่า Firebase config ของคุณตรงนี้ (ดู README.md) ===== */
 const FB={apiKey:"AIzaSyAGJVkVbBoLbTYVhdXrDSLxvAhIkX996cM",authDomain:"klangmin.firebaseapp.com",projectId:"klangmin",storageBucket:"klangmin.firebasestorage.app",messagingSenderId:"902042349529",appId:"1:902042349529:web:03505e3b6535a6684233c8"};
 let unsub=[],uu=null,US=[],ME={by:"",uid:"",role:"admin"};
