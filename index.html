@@ -67,7 +67,7 @@ tr:has(.b.over){background:var(--erb)}tr:has(.b.out){background:var(--pub)}
 <div id="alert"><span id="am"></span><button onclick="this.parentNode.classList.remove('show')">ปิด</button></div>
 <section id="scan" class="on">
 <div class="card"><div class="row"><input id="in" class="big" style="flex:1" placeholder="สแกน QR / Barcode / พิมพ์ SPEC หรือรหัส SAP แล้วกด Enter" autofocus autocomplete="off"><button class="btn" id="go">อ่านค่า</button><button class="btn sec" id="cam">📷 กล้อง</button><button class="btn red" id="cl">✕ ล้าง</button></div>
-<div class="mu">หลังสแกนต้องระบุ LOT และปริมาณ (ตัวเลขเท่านั้น) ทุกครั้ง จึงจะบันทึกได้ · อ่านผิดกด "ล้าง" แล้วสแกนใหม่</div><div id="rd" hidden></div></div>
+<div class="mu">หลังสแกนต้องระบุ LOT และปริมาณ (ตัวเลขเท่านั้น) ทุกครั้ง จึงจะบันทึกได้ · อ่านผิดกด "ล้าง" แล้วสแกนใหม่</div><div class="row" style="margin-top:6px"><label class="mu"><input type="checkbox" id="pda" style="width:20px;height:20px;padding:0;vertical-align:middle"> โหมด PDA (ไม่เด้งแป้นพิมพ์บนหน้าจอ)</label><button class="btn sec" id="kb" style="padding:6px 12px;font-size:14px">⌨ เปิดแป้นพิมพ์</button></div><div id="rd" hidden></div></div>
 <div class="card" id="cardbox"></div>
 </section>
 <section id="hist"><div class="card"><h3>ประวัติรับเข้า (ทุกรายการ) <small class="mu" id="lc"></small></h3><div class="row" style="margin-bottom:10px"><input id="lq" placeholder="ค้นหา SPEC / ชื่อ / LOT / ผู้บันทึก" style="flex:1"><input id="ld" type="date" title="กรองตามวันที่"><button class="btn sec" id="xh">⬇ Excel</button></div><div class="tw" style="max-height:480px;overflow:auto"><table id="log"></table></div></div>
@@ -100,7 +100,7 @@ function rows(){const t=tot(),s=new Set([...Object.keys(PO),...Object.keys(t)]);
  return{sap:k,spec:p?p[0]:a[0]||"",name:p?p[1]:a[1]||"",type:a[2]||"",plan:pl,got:g,diff:g-pl,st:!p?"out":g==0?"none":g>pl?"over":g==pl?"ok":"short",lots:t[k]?Object.entries(t[k].l).map(([l,q])=>"LOT"+l+"×"+q).join(", "):""}})}
 function beep(){try{const c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator();o.frequency.value=880;o.connect(c.destination);o.start();o.stop(c.currentTime+.5)}catch(e){}try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
 function alarm(m,big){$("#am").textContent=m;$("#alert").classList.add("show");beep();if(big){$("#fm").textContent=m;$("#fa").hidden=false}}
-function chk(){const l=$("#lot"),q=$("#qty"),b=$("#sv");if(!l||!q||!b)return;l.value=l.value.replace(/\D/g,"");q.value=q.value.replace(/[^\d.]/g,"").replace(/^(\d*\.?\d*).*/,"$1");const lv=l.value,qv=parseFloat(q.value)||0,ok=!!lv&&qv>0;b.disabled=!ok;
+function chk(){const l=$("#lot"),q=$("#qty"),b=$("#sv");if(!l||!q||!b)return;l.value=l.value.replace(/\D/g,"");q.value=q.value.replace(/[^\d.]/g,"").replace(/^(\d*\.?\d*).*/,"$1");const lv=l.value,qv=parseFloat(q.value)||0,ok=!!lv&&qv>0;b.disabled=!ok;applyPda();
  $("#hn").textContent=ok?"":"* ต้องระบุ "+(!lv?"LOT":"")+(!lv&&qv<=0?" และ ":"")+(qv<=0?"ปริมาณ":"")+" ก่อนบันทึก";pv()}
 function pv(){const w=$("#wn");if(!w||!cur||cur.err)return;const q=parseFloat($("#qty").value)||0,p=PO[cur.sap],g=(tot()[cur.sap]||{q:0}).q;
  w.innerHTML=!p?'<div class="warn">⚠ สินค้านี้ไม่อยู่ในคำสั่งซื้อ</div>':g+q>p[2]?'<div class="warn">⚠ หากบันทึกจะเกินคำสั่งซื้อ '+N(g+q-p[2])+'</div>':"";const st=!p?"out":g+q>p[2]?"over":g+q==p[2]?"ok":"go";$("#cardbox").className="card s-"+st;const pb=$("#pb");if(pb){pb.style.width=(p?Math.min(100,(g+q)/p[2]*100):0)+"%";pb.className=st=="over"?"over":st=="ok"?"ok":""}}
@@ -149,7 +149,11 @@ function hist(){const q=$("#lq").value.toLowerCase(),d=$("#ld").value;
  $("#lc").textContent="· ทั้งหมด "+R.length+" รายการ"+(a.length!=R.length?" (แสดง "+a.length+")":"");return a}
 function xl(name,a,w){if(!a.length){toast("ไม่มีข้อมูลให้ส่งออก",1);return}if(typeof XLSX=="undefined"){toast("โหลดไลบรารี Excel ไม่สำเร็จ",1);return}
  try{const ws=XLSX.utils.json_to_sheet(a);ws["!cols"]=w.map(x=>({wch:x}));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Data");XLSX.writeFile(wb,name+"_"+dk(Date.now())+".xlsx")}catch(e){toast("ส่งออกไม่สำเร็จ",1)}}
-$("#lq").oninput=$("#ld").onchange=log;$("#cl").onclick=()=>{$("#in").value="";cur=null;card();$("#in").focus()};$("#fk").onclick=()=>{$("#fa").hidden=true;$("#in").focus()};
+$("#lq").oninput=$("#ld").onchange=log;var kb=0;function applyPda(){const s=ls.g("pda"),on=(s!==null?s:/RK95|CipherLab/i.test(navigator.userAgent))&&!kb,c=$("#pda");if(c)c.checked=s!==null?!!s:/RK95|CipherLab/i.test(navigator.userAgent);[["#in","text"],["#lot","numeric"],["#qty","decimal"]].forEach(a=>{const e=document.querySelector(a[0]);if(e)e.inputMode=on?"none":a[1]})}
+$("#pda").onchange=e=>{ls.s("pda",e.target.checked);kb=0;applyPda();$("#in").focus()};
+$("#kb").onclick=()=>{kb=!kb;$("#kb").textContent=kb?"⌨ ซ่อนแป้นพิมพ์":"⌨ เปิดแป้นพิมพ์";applyPda();const e=document.querySelector("#lot")||$("#in");e.blur();e.focus()};
+applyPda();
+$("#cl").onclick=()=>{$("#in").value="";cur=null;card();$("#in").focus()};$("#fk").onclick=()=>{$("#fa").hidden=true;$("#in").focus()};
 $("#xh").onclick=()=>xl("receiving_history",hist().map(r=>({"เวลา":r.ts,"ผู้บันทึก":r.by||"","SPEC":r.spec,"SAP":r.sap,"สินค้า":r.name,"LOT":r.lot||"","ปริมาณ":r.qty,"แหล่งที่อ่าน":{BC:"Barcode",QR:"QR",SP:"พิมพ์"}[r.src]||""})),[22,14,16,12,36,10,10,12]);
 $("#xc").onclick=()=>{const q=$("#q").value.toLowerCase(),s=$("#fs").value,t=$("#ft").value,o={over:0,out:1,short:2,none:3,ok:4};
  xl("po_vs_received",rows().filter(r=>(!s||r.st==s)&&(!t||r.type==t)&&(!q||(r.spec+r.name+r.sap).toLowerCase().includes(q))).sort((a,b)=>o[a.st]-o[b.st]).map(r=>({"SAP":r.sap,"SPEC":r.spec,"สินค้า":r.name,"ประเภท":TY[r.type]||"","สั่ง":r.plan,"รับจริง":r.got,"ผลต่าง":r.diff,"สถานะ":ST[r.st],"LOT ที่รับ":r.lots})),[12,16,36,10,10,10,10,12,40])};
