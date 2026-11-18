@@ -57,12 +57,22 @@ tr:has(.b.over){background:var(--erb)}tr:has(.b.out){background:var(--pub)}
 .qk .btn{flex:1 1 28%;min-width:84px;height:56px;font-size:20px;font-weight:700}#sv{flex:1 1 auto}#cc{height:52px}
 @media (max-width:640px){#in{flex:1 1 100%!important}#go,#cam,#cl{flex:1;height:52px}}
 .qf{grid-column:1/-1}.qf .st{min-width:84px;height:72px;font-size:38px}.qf input{font-size:36px!important;height:72px!important;font-weight:700}
+/* ===== เมนูด้านซ้าย ===== */
+header{position:static;padding:12px 16px}h1{margin:0}
+.wrap{display:flex;align-items:flex-start;gap:10px}
+nav{flex:none;width:78px;position:sticky;top:env(safe-area-inset-top,0px);flex-direction:column;gap:6px;padding:10px 6px;background:var(--hd);border-radius:0 16px 16px 0;overflow:visible}
+nav button{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;border:0;background:transparent;color:#c3d2e5;border-radius:12px;padding:10px 2px;font-size:11px;line-height:1.2;text-align:center;font-weight:600}
+nav button i{font-style:normal;font-size:24px}nav button.on{background:#fff;color:var(--hd)}nav button[hidden]{display:none}
+main{flex:1 1 0;min-width:0}
+@media (min-width:900px){nav{width:210px;padding:12px 10px}nav button{flex-direction:row;gap:12px;font-size:16px;padding:13px 14px;text-align:left}nav button i{font-size:22px}}
+@media (max-width:640px){nav{width:62px;padding:8px 4px;gap:4px}nav button{font-size:10px;padding:8px 0}nav button i{font-size:22px}.wrap{gap:6px}main{padding:8px}.card{padding:12px}.qf .st{min-width:60px;height:64px;font-size:30px}.qf input{font-size:30px!important;height:64px!important}}
 </style></head><body>
-<header><h1>📦 เทียบคำสั่งซื้อ กับ สินค้ารับเข้า <small id="sy" class="mu"></small> <small id="us" class="mu"></small> <button class="btn sec" id="lo" hidden style="padding:2px 10px;font-size:12px">ออกจากระบบ</button></h1><nav><button data-t="scan" class="on">สแกนรับเข้า</button><button data-t="hist">ประวัติสแกน</button><button data-t="cmp">เปรียบเทียบ</button><button data-t="dash">Dashboard</button><button data-t="set">นำเข้า / ตั้งค่า</button></nav></header>
+<header><h1>📦 เทียบคำสั่งซื้อ กับ สินค้ารับเข้า <small id="sy" class="mu"></small> <small id="us" class="mu"></small> <button class="btn sec" id="lo" hidden style="padding:2px 10px;font-size:12px">ออกจากระบบ</button></h1></header>
 <div id="lg" class="ov" hidden><div class="card" style="width:min(360px,92vw)"><h3>🔐 เข้าสู่ระบบ</h3><input id="em" class="big" placeholder="อีเมล / ชื่อผู้ใช้" autocomplete="username"><input id="pw" class="big" type="password" placeholder="รหัสผ่าน" autocomplete="current-password" style="margin-top:8px"><button class="btn" id="li" style="margin-top:12px;width:100%">เข้าสู่ระบบ</button><div class="warn" id="le" hidden></div></div></div>
 <div id="pn" class="ov" hidden><div class="card" style="width:min(380px,92vw)"><h3>⏳ รอผู้ดูแลอนุมัติสิทธิ์</h3><p class="mu">บัญชีของคุณเข้าสู่ระบบแล้ว แต่ยังไม่ได้รับสิทธิ์ใช้งาน กรุณาแจ้งผู้ดูแลระบบให้กำหนดสิทธิ์ แล้วเปิดหน้านี้ใหม่</p><button class="btn sec" id="lo2">ออกจากระบบ</button></div></div>
 <div id="fa" class="ov" hidden style="background:#c62828;color:#fff;flex-direction:column;gap:18px;text-align:center;padding:24px"><div style="font-size:72px">⚠</div><div id="fm" style="font-size:26px;font-weight:700;max-width:640px"></div><button class="btn" id="fk" style="background:#fff;color:#c62828;font-size:20px;padding:14px 40px">รับทราบ</button></div>
 <div id="ts" class="ts"></div>
+<div class="wrap"><nav><button data-t="scan" class="on"><i>📷</i><span>สแกนรับเข้า</span></button><button data-t="hist"><i>🕘</i><span>ประวัติสแกน</span></button><button data-t="cmp"><i>⚖️</i><span>เปรียบเทียบ</span></button><button data-t="dash"><i>📊</i><span>Dashboard</span></button><button data-t="set"><i>⚙️</i><span>ตั้งค่า</span></button></nav>
 <main>
 <div id="alert"><span id="am"></span><button onclick="this.parentNode.classList.remove('show')">ปิด</button></div>
 <section id="scan" class="on">
@@ -79,7 +89,7 @@ tr:has(.b.over){background:var(--erb)}tr:has(.b.out){background:var(--pub)}
 <div class="card"><h3>2) Master Product</h3><p class="mu">มี Master ฝังอยู่แล้ว อัปโหลดใหม่เพื่ออัปเดต (มีผลเฉพาะเครื่องนี้) คอลัมน์: Sap, Spec, Product_name, Barcode, น้ำหนักต่อถุง, ประเภทสินค้า</p><input type="file" id="fms" accept=".xlsx,.xls,.csv"><p class="mu" id="sms"></p></div>
 <div class="card" id="ucard" hidden><h3>4) ผู้ใช้และสิทธิ์</h3><div class="tw"><table id="ut"></table></div><p class="mu">admin = ทุกอย่าง · staff = สแกน/บันทึก ลบได้เฉพาะรายการตัวเอง · viewer = ดูอย่างเดียว · pending = รออนุมัติ (เข้าใช้งานไม่ได้)</p></div>
 <div class="card"><h3>3) ข้อมูลรับเข้า</h3><button class="btn red" id="clr">ล้างข้อมูลรับเข้าทั้งหมด</button><p class="mu">ข้อมูลรับเข้าและคำสั่งซื้อใช้ร่วมกันทุกเครื่องผ่าน Firebase ถ้าหัวเว็บขึ้น ⚪ แปลว่ายังไม่ได้ตั้งค่า Firebase และเก็บเฉพาะเครื่องนี้</p></div></section>
-</main>
+</main></div>
 <script>
 const $=s=>document.querySelector(s),E=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])),N=x=>(+x).toLocaleString("th-TH",{maximumFractionDigits:2});
 const ls={g(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
