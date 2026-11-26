@@ -81,10 +81,12 @@ nav button{flex-direction:row;justify-content:flex-start;gap:14px;font-size:17px
 .tt.ok{background:#168a4a}.tt.err{background:#c62828}.tt.warn{background:#c2410c}.tt.info{background:#0a63d6}
 .tt i{font-style:normal;font-size:20px;line-height:1.25}.tt span{flex:1;word-break:break-word}.tt u{text-decoration:none;opacity:.8;font-size:22px;line-height:1}
 .tt.out{opacity:0;transform:translateY(-8px)}@keyframes tin{from{opacity:0;transform:translateY(-12px)}}
+.btn.wn{background:#c2410c;color:#fff}
 </style></head><body>
 <header><button id="mn" aria-label="เมนู">☰</button><h1>📦 เทียบคำสั่งซื้อ กับ สินค้ารับเข้า <small id="sy" class="mu"></small> <small id="us" class="mu"></small> <button class="btn sec" id="lo" hidden style="padding:2px 10px;font-size:12px">ออกจากระบบ</button></h1></header>
 <div id="lg" class="ov" hidden><div class="card" style="width:min(360px,92vw)"><h3>🔐 เข้าสู่ระบบ</h3><input id="em" class="big" placeholder="อีเมล / ชื่อผู้ใช้" autocomplete="username"><input id="pw" class="big" type="password" placeholder="รหัสผ่าน" autocomplete="current-password" style="margin-top:8px"><button class="btn" id="li" style="margin-top:12px;width:100%">เข้าสู่ระบบ</button><div class="warn" id="le" hidden></div></div></div>
 <div id="pn" class="ov" hidden><div class="card" style="width:min(380px,92vw)"><h3>⏳ รอผู้ดูแลอนุมัติสิทธิ์</h3><p class="mu">บัญชีของคุณเข้าสู่ระบบแล้ว แต่ยังไม่ได้รับสิทธิ์ใช้งาน กรุณาแจ้งผู้ดูแลระบบให้กำหนดสิทธิ์ แล้วเปิดหน้านี้ใหม่</p><button class="btn sec" id="lo2">ออกจากระบบ</button></div></div>
+<div id="cf" class="ov" hidden style="z-index:50;background:rgba(0,0,0,.6);padding:14px"><div class="card" style="width:min(440px,100%);max-height:94vh;overflow:auto;margin:0"><h3 id="cft" style="font-size:20px"></h3><div id="cfb"></div><div id="cfa" style="display:grid;gap:10px;margin-top:16px"></div></div></div>
 <div id="tc"></div>
 <div id="bd"></div>
 <div class="wrap"><nav><div class="dh">📦 เมนู</div><button data-t="scan" class="on"><i>📷</i><span>สแกนรับเข้า</span></button><button data-t="hist"><i>🕘</i><span>ประวัติสแกน</span></button><button data-t="cmp"><i>⚖️</i><span>เปรียบเทียบ</span></button><button data-t="dash"><i>📊</i><span>Dashboard</span></button><button data-t="set"><i>⚙️</i><span>ตั้งค่า</span></button></nav>
@@ -137,15 +139,26 @@ function card(){const b=$("#cardbox");b.className="card";if(!cur){b.innerHTML='<
  b.innerHTML='<div class="grid"><div class="f"><small>SPEC</small><b>'+E(cur.spec)+'</b></div><div class="f hero"><small>PRODUCT_NAME</small><b>'+E(cur.name)+'</b></div><div class="f"><small>LOT *</small><input id="lot" inputmode="numeric" autocomplete="off" value="'+E(cur.lot)+'" placeholder="'+(cur.src=="BC"?"LOT เป็นตัวเลข (Barcode ไม่มี LOT)":"LOT เป็นตัวเลข")+'"></div><div class="f qf"><small>ปริมาณ * (ไม่เกิน 4 หลัก)</small><div class="row" style="flex-wrap:nowrap"><button class="btn sec st" data-s="-1">−</button><input id="qty" type="text" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="ระบุปริมาณ" style="text-align:center"><button class="btn sec st" data-s="1">+</button></div></div></div><div class="row qk" style="margin-top:12px"><span class="mu" style="flex:1 1 100%">เพิ่มเร็ว:</span>'+[30,60,90,150,180].map(a=>'<button class="btn sec" data-a="'+a+'">+'+a+'</button>').join("")+'<button class="btn sec" data-a="0">ล้างปริมาณ</button></div>'
  +'<div class="info">SAP '+E(cur.sap)+" · "+(TY[cur.type]||"-")+(cur.wt?" · น้ำหนัก/ถุง "+E(cur.wt):"")+" · อ่านจาก "+({BC:"Barcode",QR:"QR",SP:"พิมพ์"}[cur.src]||"พิมพ์")+" · "+(p?"สั่ง "+N(p[2])+" · รับแล้ว "+N(g)+" · คงเหลือ "+N(p[2]-g):"ไม่อยู่ในคำสั่งซื้อ · รับแล้ว "+N(g))+'</div><div class="bar" style="height:14px;margin-top:10px"><i id="pb"></i></div><div id="wn"></div><div class="row" style="margin-top:12px"><button class="btn" id="sv">✔ บันทึกรับเข้า</button><button class="btn sec" id="cc">ยกเลิก</button></div><div id="hn" style="margin-top:8px;color:var(--er);font-weight:600"></div>';
  $("#sv").onclick=save;$("#cc").onclick=()=>{cur=null;card();$("#in").focus()};$("#qty").oninput=chk;document.querySelectorAll("[data-s]").forEach(x=>x.onclick=()=>{const q=$("#qty");q.value=Math.min(9999,Math.max(0,(parseInt(q.value)||0)+(+x.dataset.s)))||"";chk()});document.querySelectorAll("[data-a]").forEach(x=>x.onclick=()=>{const a=+x.dataset.a,q=$("#qty");const n=(parseInt(q.value)||0)+a;if(n>9999)toast("⚠ ปริมาณสูงสุด 9999",1);q.value=a?Math.min(9999,n):"";chk();q.focus()});$("#lot").oninput=chk;$("#lot").onkeydown=e=>{if(e.key=="Enter"){e.preventDefault();$("#qty").focus()}};chk();$("#qty").onkeydown=e=>{if(e.key=="Enter")save()};pv()}
-function save(){if(!cur||cur.err||cur.multi)return;const lt=$("#lot").value.trim(),qs=$("#qty").value.trim(),q=parseFloat(qs)||0;if(!/^\d+$/.test(lt)){toast("⚠ LOT ต้องเป็นตัวเลขเท่านั้น",1);$("#lot").focus();return}if(!/^\d{1,4}$/.test(qs)||q<=0){toast("⚠ ปริมาณต้องเป็นตัวเลข 1-9999",1);$("#qty").focus();return}const p=PO[cur.sap],g=(tot()[cur.sap]||{q:0}).q,lot=$("#lot")?$("#lot").value.trim().replace(/^LOT/i,""):cur.lot;
- const rec={id:Date.now()+"-"+Math.floor(Math.random()*1e4),t:Date.now(),by:ME.by,uid:ME.uid,ts:new Date().toLocaleString("th-TH"),sap:cur.sap,spec:cur.spec,name:cur.name,lot,qty:q,src:cur.src||""};
+function save(){if(!cur||cur.err||cur.multi)return;const lt=$("#lot").value.trim(),qs=$("#qty").value.trim(),q=parseFloat(qs)||0;if(!/^\d+$/.test(lt)){toast("⚠ LOT ต้องเป็นตัวเลขเท่านั้น",1);$("#lot").focus();return}if(!/^\d{1,4}$/.test(qs)||q<=0){toast("⚠ ปริมาณต้องเป็นตัวเลข 1-9999",1);$("#qty").focus();return}
+ const p=PO[cur.sap],g=(tot()[cur.sap]||{q:0}).q;if(!p||g+q>p[2]){beep();cfm(q);return}commit(q)}
+function commit(q,mode,x){const lt=$("#lot").value.trim(),p=PO[cur.sap],g=(tot()[cur.sap]||{q:0}).q,note=mode=="over"?(p?"รับเกิน "+N(g+q-p[2]):"นอก PO (ยืนยันรับ)"):mode=="cap"?"รับเฉพาะส่วนที่เหลือ (ไม่รับเกิน "+N(x)+")":"";
+ const rec={id:Date.now()+"-"+Math.floor(Math.random()*1e4),t:Date.now(),by:ME.by,uid:ME.uid,ts:new Date().toLocaleString("th-TH"),sap:cur.sap,spec:cur.spec,name:cur.name,lot:lt,qty:q,src:cur.src||"",note};
  if(DB)DB.doc("receipts/"+rec.id).set(rec).catch(e=>alarm("บันทึกขึ้นระบบกลางไม่สำเร็จ ("+(e.code||"")+")"));else{R.push(rec);ls.s("rc",R)}
- if(!p)alarm("⚠ "+cur.spec+" ไม่อยู่ในคำสั่งซื้อ",1);else if(g+q>p[2])alarm("⚠ "+cur.spec+" เกินคำสั่งซื้อ "+N(g+q-p[2])+" (สั่ง "+N(p[2])+" รับแล้ว "+N(g+q)+")",1);else toast("บันทึกแล้ว: "+rec.spec+" · LOT "+rec.lot+" · × "+rec.qty);
+ if(mode=="over")alarm("รับเกินยอดสั่งซื้อ: "+rec.spec+" × "+q+(p?" (เกิน "+N(g+q-p[2])+")":" (นอก PO)"),1);else toast("บันทึกแล้ว: "+rec.spec+" · LOT "+rec.lot+" · × "+rec.qty+(mode=="cap"?" (ตัดส่วนเกินออก)":""));
  cur=null;card();$("#in").value="";$("#in").focus();all()}
+function cfm(q){const p=PO[cur.sap],g=(tot()[cur.sap]||{q:0}).q,ok=p?Math.max(0,p[2]-g):0,ex=p?g+q-p[2]:0,lt=$("#lot").value.trim();
+ $("#cft").textContent=p?"⚠ ยอดรับเกินคำสั่งซื้อ":"⚠ สินค้าไม่อยู่ในคำสั่งซื้อ";
+ $("#cfb").innerHTML='<div><b style="font-size:20px">'+E(cur.spec)+'</b><div class="mu">'+E(cur.name)+" · LOT "+E(lt)+"</div></div>"+(p?'<table style="min-width:0;margin-top:10px">'+[["สั่งซื้อ",p[2]],["รับแล้ว",g],["จะรับครั้งนี้",q],["เกินคำสั่งซื้อ",ex],["ควรรับได้อีก",ok]].map(r=>"<tr><td>"+r[0]+'</td><td class="n"><b>'+N(r[1])+"</b></td></tr>").join("")+"</table>":'<div class="mu" style="margin-top:8px">ไม่พบสินค้านี้ในใบสั่งซื้อที่นำเข้า</div>');
+ const a=$("#cfa");a.innerHTML="";
+ const add=(txt,cls,fn,dis)=>{const b=document.createElement("button");b.className="btn "+cls;b.style.cssText="width:100%;font-size:17px;padding:15px;white-space:normal";b.textContent=txt;b.disabled=!!dis;b.onclick=()=>{$("#cf").hidden=true;fn()};a.appendChild(b)};
+ if(p)add(ok>0?"✔ รับเฉพาะที่เหลือ "+N(ok)+" (ไม่รับเกิน "+N(ex)+")":"ครบยอดสั่งแล้ว ไม่ควรรับเพิ่ม","",()=>commit(ok,"cap",ex),ok<=0);
+ add("รับเข้าทั้งหมด "+N(q)+" (ยืนยันรับเกิน)","wn",()=>commit(q,"over"));
+ add("✖ ไม่รับสินค้า","red",()=>{toast("ไม่รับ "+cur.spec+" (ไม่ได้บันทึก)","info",3000);cur=null;card();$("#in").value="";$("#in").focus()});
+ try{document.activeElement.blur()}catch(e){}$("#cf").hidden=false}
 function fo(){const l=$("#lot"),q=$("#qty");if(l&&!l.value.trim().replace(/^LOT/i,""))l.focus();else if(q){q.focus();q.select()}}
 var ti,t0=0,tl=0;
 function scan(t){clearTimeout(ti);$("#in").value=t;cur=resolve(t);card();if(cur&&!cur.err&&!cur.multi)fo()}
-function log(){const h=hist().map(r=>"<tr><td>"+E(r.ts)+"</td><td>"+E(r.by||"-")+"</td><td>"+E(r.spec)+"</td><td>"+E(r.name)+"</td><td>"+(r.lot?"LOT"+E(r.lot):"")+'</td><td class="n">'+N(r.qty)+'</td><td>'+(can(r)?'<button class="btn sec" data-d="'+r.id+'">ลบ</button>':'')+'</td></tr>').join("");
+function log(){const h=hist().map(r=>"<tr><td>"+E(r.ts)+"</td><td>"+E(r.by||"-")+"</td><td>"+E(r.spec)+"</td><td>"+E(r.name)+(r.note?'<div class="mu">'+E(r.note)+"</div>":"")+"</td><td>"+(r.lot?"LOT"+E(r.lot):"")+'</td><td class="n">'+N(r.qty)+'</td><td>'+(can(r)?'<button class="btn sec" data-d="'+r.id+'">ลบ</button>':'')+'</td></tr>').join("");
  $("#log").innerHTML="<tr><th>เวลา</th><th>ผู้บันทึก</th><th>SPEC</th><th>สินค้า</th><th>LOT</th><th class='n'>ปริมาณ</th><th></th></tr>"+(h||'<tr><td colspan="7" class="mu">ยังไม่มีรายการ</td></tr>');
  document.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{if(DB)DB.doc("receipts/"+b.dataset.d).delete().catch(e=>alarm("ลบไม่สำเร็จ"));else{R=R.filter(r=>String(r.id)!=b.dataset.d);ls.s("rc",R);all()}})}
 function cmp(){const q=$("#q").value.toLowerCase(),s=$("#fs").value,t=$("#ft").value;
@@ -182,12 +195,12 @@ applyPda();
 $("#in").addEventListener("input",()=>{const i=$("#in"),v=i.value.trim(),n=Date.now();if(v.length<=1||n-tl>400)t0=n;tl=n;clearTimeout(ti);
  if(v.length>=8)ti=setTimeout(()=>{if(i.value.trim()==v&&(tl-t0)/v.length<60)scan(v)},300)});
 document.addEventListener("keydown",e=>{const a=document.activeElement,g=a&&a.tagName;if(g=="INPUT"||g=="SELECT"||g=="TEXTAREA"||e.ctrlKey||e.metaKey||e.altKey)return;
- if($("#scan").classList.contains("on")&&$("#lg").hidden&&$("#pn").hidden&&(e.key.length==1||e.key=="Enter"))$("#in").focus()});
+ if($("#scan").classList.contains("on")&&$("#cf").hidden&&$("#lg").hidden&&$("#pn").hidden&&(e.key.length==1||e.key=="Enter"))$("#in").focus()});
 function dr(o){document.body.classList.toggle("dopen",!!o)}
 $("#mn").onclick=()=>dr(!document.body.classList.contains("dopen"));$("#bd").onclick=()=>dr(0);
 document.addEventListener("keydown",e=>{if(e.key=="Escape")dr(0)});
 $("#cl").onclick=()=>{$("#in").value="";cur=null;card();$("#in").focus()};
-$("#xh").onclick=()=>xl("receiving_history",hist().map(r=>({"เวลา":r.ts,"ผู้บันทึก":r.by||"","SPEC":r.spec,"SAP":r.sap,"สินค้า":r.name,"LOT":r.lot||"","ปริมาณ":r.qty,"แหล่งที่อ่าน":{BC:"Barcode",QR:"QR",SP:"พิมพ์"}[r.src]||""})),[22,14,16,12,36,10,10,12]);
+$("#xh").onclick=()=>xl("receiving_history",hist().map(r=>({"เวลา":r.ts,"ผู้บันทึก":r.by||"","SPEC":r.spec,"SAP":r.sap,"สินค้า":r.name,"LOT":r.lot||"","ปริมาณ":r.qty,"แหล่งที่อ่าน":{BC:"Barcode",QR:"QR",SP:"พิมพ์"}[r.src]||"","หมายเหตุ":r.note||""})),[22,14,16,12,36,10,10,12,26]);
 $("#xc").onclick=()=>{const q=$("#q").value.toLowerCase(),s=$("#fs").value,t=$("#ft").value,o={over:0,out:1,short:2,none:3,ok:4};
  xl("po_vs_received",rows().filter(r=>(!s||r.st==s)&&(!t||r.type==t)&&(!q||(r.spec+r.name+r.sap).toLowerCase().includes(q))).sort((a,b)=>o[a.st]-o[b.st]).map(r=>({"SAP":r.sap,"SPEC":r.spec,"สินค้า":r.name,"ประเภท":TY[r.type]||"","สั่ง":r.plan,"รับจริง":r.got,"ผลต่าง":r.diff,"สถานะ":ST[r.st],"LOT ที่รับ":r.lots})),[12,16,36,10,10,10,10,12,40])};
 function toast(m,b,ms){const ty=b===1?"err":(b||"ok"),c=$("#tc");if(!c)return;
